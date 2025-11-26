@@ -1,42 +1,59 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/subtitle_provider.dart';
+import '../providers/video_provider.dart';
 
 class SubtitleDisplay extends StatelessWidget {
   const SubtitleDisplay({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<SubtitleProvider>(
-      builder: (context, provider, child) {
-        final hasSub1 = provider.showSubtitle1 && provider.currentSubtitle1.isNotEmpty;
-        final hasSub2 = provider.showSubtitle2 && provider.currentSubtitle2.isNotEmpty;
-
-        if (!hasSub1 && !hasSub2) {
+    return Consumer2<SubtitleProvider, VideoProvider>(
+      builder: (context, subtitleProvider, videoProvider, child) {
+        if (!videoProvider.isInitialized) {
           return const SizedBox.shrink();
         }
 
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (hasSub2)
-                _buildSubtitleText(
-                  provider.currentSubtitle2,
-                  provider.subtitle2Size,
-                  provider.subtitle2Color,
-                ),
-              if (hasSub1 && hasSub2)
-                SizedBox(height: provider.subtitleGap),
-              if (hasSub1)
-                _buildSubtitleText(
-                  provider.currentSubtitle1,
-                  provider.subtitle1Size,
-                  provider.subtitle1Color,
-                ),
-            ],
-          ),
+        return StreamBuilder<Duration>(
+          stream: videoProvider.positionStream,
+          builder: (context, snapshot) {
+            if (snapshot.hasData) {
+              final position = snapshot.data!;
+               subtitleProvider.updateSubtitles(position);
+            }
+
+            final hasSub1 = subtitleProvider.showSubtitle1 &&
+                subtitleProvider.currentSubtitle1.isNotEmpty;
+            final hasSub2 = subtitleProvider.showSubtitle2 &&
+                subtitleProvider.currentSubtitle2.isNotEmpty;
+
+            if (!hasSub1 && !hasSub2) {
+              return const SizedBox.shrink();
+            }
+
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (hasSub2)
+                    _buildSubtitleText(
+                      subtitleProvider.currentSubtitle2,
+                      subtitleProvider.subtitle2Size,
+                      subtitleProvider.subtitle2Color,
+                    ),
+                  if (hasSub1 && hasSub2)
+                    SizedBox(height: subtitleProvider.subtitleGap),
+                  if (hasSub1)
+                    _buildSubtitleText(
+                      subtitleProvider.currentSubtitle1,
+                      subtitleProvider.subtitle1Size,
+                      subtitleProvider.subtitle1Color,
+                    ),
+                ],
+              ),
+            );
+          },
         );
       },
     );
@@ -44,10 +61,17 @@ class SubtitleDisplay extends StatelessWidget {
 
   Widget _buildSubtitleText(String text, double size, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.7),
-        borderRadius: BorderRadius.circular(4),
+        color: Colors.black.withOpacity(0.8),
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.5),
+            blurRadius: 8,
+            spreadRadius: 2,
+          ),
+        ],
       ),
       child: Text(
         text,
@@ -56,11 +80,17 @@ class SubtitleDisplay extends StatelessWidget {
           fontSize: size,
           color: color,
           fontWeight: FontWeight.bold,
+          height: 1.4,
           shadows: [
             Shadow(
-              offset: const Offset(1, 1),
-              blurRadius: 3,
-              color: Colors.black.withOpacity(0.8),
+              offset: const Offset(2, 2),
+              blurRadius: 4,
+              color: Colors.black,
+            ),
+            Shadow(
+              offset: const Offset(-1, -1),
+              blurRadius: 4,
+              color: Colors.black,
             ),
           ],
         ),

@@ -160,7 +160,6 @@ class SRTParser extends SubtitleParser {
   }
 }
 
-/// WebVTT
 class VTTParser extends SubtitleParser {
   @override
   List<SubtitleItem> parse(String content) {
@@ -286,7 +285,6 @@ class SSAParser extends SubtitleParser {
   }
 
   Duration _parseSSATime(String timeString) {
-
     final match = RegExp(r'(\d+):(\d{2}):(\d{2})\.(\d{2})')
         .firstMatch(timeString);
 
@@ -417,6 +415,13 @@ class SubtitleProvider extends ChangeNotifier {
       _lastSubtitle1Index = 0;
 
       debugPrint('Parsed ${_subtitle1Data!.length} subtitle 1 items');
+
+      if (_subtitle1Data!.isNotEmpty) {
+        debugPrint('First subtitle: ${_subtitle1Data!.first}');
+        if (_subtitle1Data!.length > 1) {
+          debugPrint('Second subtitle: ${_subtitle1Data![1]}');
+        }
+      }
     } catch (e) {
       debugPrint('Error parsing subtitle 1: $e');
       _subtitle1Data = null;
@@ -444,6 +449,13 @@ class SubtitleProvider extends ChangeNotifier {
       _lastSubtitle2Index = 0;
 
       debugPrint('Parsed ${_subtitle2Data!.length} subtitle 2 items');
+
+      if (_subtitle2Data!.isNotEmpty) {
+        debugPrint('First subtitle: ${_subtitle2Data!.first}');
+        if (_subtitle2Data!.length > 1) {
+          debugPrint('Second subtitle: ${_subtitle2Data![1]}');
+        }
+      }
     } catch (e) {
       debugPrint('Error parsing subtitle 2: $e');
       _subtitle2Data = null;
@@ -455,7 +467,7 @@ class SubtitleProvider extends ChangeNotifier {
   void updateSubtitles(Duration position) {
     bool changed = false;
 
-    if (_subtitle1Data != null) {
+    if (_subtitle1Data != null && _showSubtitle1) {
       final newText = _getSubtitleText(
         _subtitle1Data!,
         position,
@@ -466,10 +478,16 @@ class SubtitleProvider extends ChangeNotifier {
       if (newText != _currentSubtitle1) {
         _currentSubtitle1 = newText;
         changed = true;
+        if (newText.isNotEmpty) {
+          debugPrint('Subtitle 1 updated at ${position.inSeconds}s: $newText');
+        }
       }
+    } else if (_currentSubtitle1.isNotEmpty) {
+      _currentSubtitle1 = '';
+      changed = true;
     }
 
-    if (_subtitle2Data != null) {
+    if (_subtitle2Data != null && _showSubtitle2) {
       final newText = _getSubtitleText(
         _subtitle2Data!,
         position,
@@ -480,7 +498,13 @@ class SubtitleProvider extends ChangeNotifier {
       if (newText != _currentSubtitle2) {
         _currentSubtitle2 = newText;
         changed = true;
+        if (newText.isNotEmpty) {
+          debugPrint('Subtitle 2 updated at ${position.inSeconds}s: $newText');
+        }
       }
+    } else if (_currentSubtitle2.isNotEmpty) {
+      _currentSubtitle2 = '';
+      changed = true;
     }
 
     if (changed) {
@@ -488,7 +512,6 @@ class SubtitleProvider extends ChangeNotifier {
     }
   }
 
-  /// (Binary Search + Cache)
   String _getSubtitleText(
       List<SubtitleItem> subtitles,
       Duration position,
@@ -556,11 +579,17 @@ class SubtitleProvider extends ChangeNotifier {
 
   void toggleSubtitle1() {
     _showSubtitle1 = !_showSubtitle1;
+    if (!_showSubtitle1) {
+      _currentSubtitle1 = '';
+    }
     notifyListeners();
   }
 
   void toggleSubtitle2() {
     _showSubtitle2 = !_showSubtitle2;
+    if (!_showSubtitle2) {
+      _currentSubtitle2 = '';
+    }
     notifyListeners();
   }
 
