@@ -21,10 +21,7 @@ class _VideoControlsState extends State<VideoControls> {
           return const SizedBox.shrink();
         }
 
-        final position = videoProvider.currentPosition;
         final duration = videoProvider.totalDuration;
-
-        subtitleProvider.updateSubtitles(position);
 
         return AnimatedOpacity(
           opacity: _showControls ? 1.0 : 0.0,
@@ -40,87 +37,103 @@ class _VideoControlsState extends State<VideoControls> {
                 ],
               ),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Row(
-                    children: [
-                      Text(
-                        _formatDuration(position),
-                        style: const TextStyle(color: Colors.white, fontSize: 12),
+            child: StreamBuilder<Duration>(
+              stream: videoProvider.positionStream,
+              builder: (context, snapshot) {
+                final position = snapshot.data ?? Duration.zero;
+
+                if (snapshot.hasData) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    subtitleProvider.updateSubtitles(position);
+                  });
+                }
+
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Row(
+                        children: [
+                          Text(
+                            _formatDuration(position),
+                            style: const TextStyle(color: Colors.white, fontSize: 12),
+                          ),
+                          Expanded(
+                            child: Slider(
+                              value: position.inMilliseconds.toDouble().clamp(
+                                0.0,
+                                duration.inMilliseconds.toDouble(),
+                              ),
+                              max: duration.inMilliseconds.toDouble(),
+                              onChanged: (value) {
+                                videoProvider.seekTo(
+                                  Duration(milliseconds: value.toInt()),
+                                );
+                              },
+                              activeColor: Colors.blue,
+                              inactiveColor: Colors.grey[700],
+                            ),
+                          ),
+                          Text(
+                            _formatDuration(duration),
+                            style: const TextStyle(color: Colors.white, fontSize: 12),
+                          ),
+                        ],
                       ),
-                      Expanded(
-                        child: Slider(
-                          value: position.inMilliseconds.toDouble(),
-                          max: duration.inMilliseconds.toDouble(),
-                          onChanged: (value) {
-                            videoProvider.seekTo(
-                              Duration(milliseconds: value.toInt()),
-                            );
-                          },
-                          activeColor: Colors.blue,
-                          inactiveColor: Colors.grey[700],
-                        ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.replay_10),
+                            color: Colors.white,
+                            iconSize: 28,
+                            onPressed: () {
+                              final newPosition = position - const Duration(seconds: 10);
+                              videoProvider.seekTo(
+                                newPosition < Duration.zero ? Duration.zero : newPosition,
+                              );
+                            },
+                          ),
+                          const SizedBox(width: 20),
+                          IconButton(
+                            icon: Icon(
+                              videoProvider.isPlaying
+                                  ? Icons.pause_circle_filled
+                                  : Icons.play_circle_filled,
+                            ),
+                            color: Colors.white,
+                            iconSize: 56,
+                            onPressed: () => videoProvider.togglePlayPause(),
+                          ),
+                          const SizedBox(width: 20),
+                          IconButton(
+                            icon: const Icon(Icons.forward_10),
+                            color: Colors.white,
+                            iconSize: 28,
+                            onPressed: () {
+                              final newPosition = position + const Duration(seconds: 10);
+                              videoProvider.seekTo(
+                                newPosition > duration ? duration : newPosition,
+                              );
+                            },
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            icon: const Icon(Icons.upload_file),
+                            color: Colors.white,
+                            iconSize: 28,
+                            onPressed: () => videoProvider.pickVideo(),
+                          ),
+                        ],
                       ),
-                      Text(
-                        _formatDuration(duration),
-                        style: const TextStyle(color: Colors.white, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.replay_10),
-                        color: Colors.white,
-                        iconSize: 28,
-                        onPressed: () {
-                          final newPosition = position - const Duration(seconds: 10);
-                          videoProvider.seekTo(
-                            newPosition < Duration.zero ? Duration.zero : newPosition,
-                          );
-                        },
-                      ),
-                      const SizedBox(width: 20),
-                      IconButton(
-                        icon: Icon(
-                          videoProvider.isPlaying
-                              ? Icons.pause_circle_filled
-                              : Icons.play_circle_filled,
-                        ),
-                        color: Colors.white,
-                        iconSize: 56,
-                        onPressed: () => videoProvider.togglePlayPause(),
-                      ),
-                      const SizedBox(width: 20),
-                      IconButton(
-                        icon: const Icon(Icons.forward_10),
-                        color: Colors.white,
-                        iconSize: 28,
-                        onPressed: () {
-                          final newPosition = position + const Duration(seconds: 10);
-                          videoProvider.seekTo(
-                            newPosition > duration ? duration : newPosition,
-                          );
-                        },
-                      ),
-                      const Spacer(),
-                      IconButton(
-                        icon: const Icon(Icons.upload_file),
-                        color: Colors.white,
-                        iconSize: 28,
-                        onPressed: () => videoProvider.pickVideo(),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         );

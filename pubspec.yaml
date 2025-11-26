@@ -13,9 +13,10 @@ dependencies:
   # State Management
   provider: ^6.1.1
 
-  # Video Player
-  video_player: ^2.8.2
-  chewie: ^1.7.5
+  # Video Player (MediaKit Core)
+  media_kit: ^1.1.10
+  media_kit_video: ^1.2.4
+  media_kit_libs_video: ^1.0.7
 
   # File Picker
   file_picker: ^10.3.7

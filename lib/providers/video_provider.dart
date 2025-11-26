@@ -1,48 +1,39 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:video_player/video_player.dart';
 import 'package:file_picker/file_picker.dart';
-import '../services/optimized_video_loader.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:media_kit_video/media_kit_video.dart';
 
 class VideoProvider extends ChangeNotifier {
-  final OptimizedVideoLoader _videoLoader = OptimizedVideoLoader();
+  late final Player _player;
+  late final VideoController _controller;
 
-  VideoPlayerController? _controller;
   File? _videoFile;
   bool _isInitialized = false;
   bool _isLoading = false;
   String? _error;
-  String? _videoPath;
 
-  VideoPlayerController? get controller => _controller;
+  // Getters
+  Player get player => _player;
+  VideoController get controller => _controller;
   File? get videoFile => _videoFile;
   bool get isInitialized => _isInitialized;
   bool get isLoading => _isLoading;
   String? get error => _error;
-  String? get videoPath => _videoPath;
 
-  Duration get currentPosition {
-    if (_controller == null) return Duration.zero;
-    return _controller!.value.position;
-  }
+  Duration get currentPosition => _player.state.position;
+  Duration get totalDuration => _player.state.duration;
+  bool get isPlaying => _player.state.playing;
+  bool get isBuffering => _player.state.buffering;
 
-  Duration get totalDuration {
-    if (_controller == null) return Duration.zero;
-    return _controller!.value.duration;
-  }
-
-  bool get isPlaying {
-    if (_controller == null) return false;
-    return _controller!.value.isPlaying;
-  }
+  // استریم موقعیت برای استفاده در StreamBuilder (تغییر جدید)
+  Stream<Duration> get positionStream => _player.stream.position;
 
   double get buffered {
-    if (_controller == null) return 0.0;
-    if (_controller!.value.buffered.isEmpty) return 0.0;
-    if (_controller!.value.duration.inMilliseconds == 0) return 0.0;
-
-    return _controller!.value.buffered.last.end.inMilliseconds /
-        _controller!.value.duration.inMilliseconds;
+    final duration = _player.state.duration.inMilliseconds;
+    final buffer = _player.state.buffer.inMilliseconds;
+    if (duration == 0) return 0.0;
+    return (buffer / duration).clamp(0.0, 1.0);
   }
 
   VideoProvider() {
@@ -50,7 +41,40 @@ class VideoProvider extends ChangeNotifier {
   }
 
   Future<void> _initialize() async {
-    await _videoLoader.initialize();
+    _player = Player();
+    _controller = VideoController(_player);
+
+    // Listen to position changes
+    // اصلاح: حذف notifyListeners برای پوزیشن برای جلوگیری از بیلد شدن‌های اضافی
+    // چون حالا از StreamBuilder استفاده می‌کنیم، نیازی نیست اینجا UI رو خبر کنیم.
+    /* _player.stream.position.listen((duration) {
+      notifyListeners();
+    });
+    */
+
+    // Listen to playing state
+    _player.stream.playing.listen((playing) {
+      notifyListeners();
+    });
+
+    // Listen to buffering state
+    _player.stream.buffering.listen((buffering) {
+      notifyListeners();
+    });
+
+    // Listen to completion
+    _player.stream.completed.listen((completed) {
+      if (completed) {
+        _player.seek(Duration.zero);
+        _player.pause();
+      }
+    });
+
+    // Listen to errors
+    _player.stream.error.listen((error) {
+      _error = 'MediaKit Error: $error';
+      notifyListeners();
+    });
   }
 
   Future<void> pickVideo() async {
@@ -59,180 +83,61 @@ class VideoProvider extends ChangeNotifier {
       _error = null;
       notifyListeners();
 
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.platform.pickFiles(
         type: FileType.video,
-        allowedExtensions: ['mp4', 'mkv', 'mov', 'avi', 'flv', 'wmv'],
+        allowMultiple: false,
       );
 
-      if (result != null && result.files.single.path != null) {
-        _videoFile = File(result.files.single.path!);
-        _videoPath = result.files.single.path;
-
-        // Validate file
-        if (!await _videoFile!.exists()) {
-          throw Exception('Video file not found');
-        }
-
-        final fileSize = await _videoFile!.length();
-        if (fileSize == 0) {
-          throw Exception('Video file is empty');
-        }
-
-        debugPrint('📹 Video selected: ${_videoFile!.path}');
-        debugPrint('📦 Size: ${(fileSize / (1024 * 1024)).toStringAsFixed(2)} MB');
-
-        await initializeVideo();
-      }
-    } catch (e) {
-      _error = 'Error picking video: $e';
-      debugPrint('❌ $_error');
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  Future<void> initializeVideo() async {
-    if (_videoFile == null) return;
-
-    try {
-      _isLoading = true;
-      _error = null;
-      notifyListeners();
-
-      // Dispose previous controller
-      await disposeController();
-
-      // Load video with optimized loader
-      _controller = await _videoLoader.loadVideo(_videoFile!);
-
-      if (_controller == null) {
-        throw Exception('Failed to initialize video controller');
+      if (result == null || result.files.isEmpty) {
+        _isLoading = false;
+        notifyListeners();
+        return;
       }
 
-      // Add listener for updates
-      _controller!.addListener(_videoListener);
+      final filePath = result.files.single.path!;
+      _videoFile = File(filePath);
+
+      await _player.open(Media(filePath));
 
       _isInitialized = true;
       _error = null;
 
-      debugPrint('✅ Video initialized successfully');
-      debugPrint('⏱️ Duration: ${_controller!.value.duration}');
-      debugPrint('📐 Aspect Ratio: ${_controller!.value.aspectRatio}');
-
     } catch (e) {
-      _error = 'Error initializing video: $e';
+      _error = 'Error loading video: $e';
       _isInitialized = false;
-      debugPrint('❌ $_error');
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  void _videoListener() {
-    if (!_isInitialized) return;
-    if (_controller == null) return;
-
-    // Check for errors
-    if (_controller!.value.hasError) {
-      _error = _controller!.value.errorDescription;
-      debugPrint('❌ Video error: $_error');
-    }
-
-    notifyListeners();
-  }
-
   void play() {
-    if (_controller == null || !_isInitialized) return;
-
-    try {
-      _controller!.play();
-      notifyListeners();
-    } catch (e) {
-      _error = 'Error playing video: $e';
-      notifyListeners();
-    }
+    _player.play();
   }
 
   void pause() {
-    if (_controller == null) return;
-
-    try {
-      _controller!.pause();
-      notifyListeners();
-    } catch (e) {
-      _error = 'Error pausing video: $e';
-      notifyListeners();
-    }
+    _player.pause();
   }
 
   void togglePlayPause() {
-    if (_controller == null || !_isInitialized) return;
-
-    if (_controller!.value.isPlaying) {
-      pause();
-    } else {
-      play();
-    }
+    _player.playOrPause();
   }
 
   Future<void> seekTo(Duration position) async {
-    if (_controller == null || !_isInitialized) return;
-
-    try {
-      await _controller!.seekTo(position);
-      notifyListeners();
-    } catch (e) {
-      _error = 'Error seeking: $e';
-      notifyListeners();
-    }
+    await _player.seek(position);
   }
 
   void setVolume(double volume) {
-    if (_controller == null) return;
-
-    try {
-      _controller!.setVolume(volume.clamp(0.0, 1.0));
-      notifyListeners();
-    } catch (e) {
-      _error = 'Error setting volume: $e';
-      notifyListeners();
-    }
+    _player.setVolume(volume * 100);
   }
 
   void setPlaybackSpeed(double speed) {
-    if (_controller == null || !_isInitialized) return;
-
-    try {
-      _controller!.setPlaybackSpeed(speed.clamp(0.25, 2.0));
-      notifyListeners();
-    } catch (e) {
-      _error = 'Error setting speed: $e';
-      notifyListeners();
-    }
-  }
-
-  Future<void> disposeController() async {
-    if (_controller != null) {
-      _controller!.removeListener(_videoListener);
-
-      try {
-        await _controller!.pause();
-        await _controller!.dispose();
-      } catch (e) {
-        debugPrint('❌ Error disposing controller: $e');
-      }
-
-      _controller = null;
-      _isInitialized = false;
-    }
+    _player.setRate(speed);
   }
 
   @override
   void dispose() {
-    disposeController();
-    _videoLoader.dispose();
+    _player.dispose();
     super.dispose();
   }
 }
