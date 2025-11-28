@@ -6,6 +6,7 @@ import '../providers/video_provider.dart';
 import '../providers/subtitle_provider.dart';
 import '../widgets/video_controls.dart';
 import '../widgets/subtitle_display.dart';
+import 'netflix_menu_bar.dart';
 import 'dart:async';
 
 class PlayerTab extends StatefulWidget {
@@ -292,7 +293,7 @@ class _PlayerTabState extends State<PlayerTab> with TickerProviderStateMixin {
                 ),
               ),
 
-            // Top Gradient Overlay with Video Info
+            // Netflix Menu Bar (Top)
             Positioned(
               top: 0,
               left: 0,
@@ -300,83 +301,11 @@ class _PlayerTabState extends State<PlayerTab> with TickerProviderStateMixin {
               child: AnimatedOpacity(
                 opacity: _showControls ? 1.0 : 0.0,
                 duration: const Duration(milliseconds: 300),
-                child: Container(
-                  padding: EdgeInsets.only(
-                    top: MediaQuery.of(context).padding.top + 10,
-                    left: 20,
-                    right: 20,
-                    bottom: 20,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.black.withOpacity(0.9),
-                        Colors.black.withOpacity(0.7),
-                        Colors.transparent,
-                      ],
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(
-                          Icons.movie_filter_outlined,
-                          color: Colors.red,
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              videoProvider.videoFile?.path
-                                  .split('/')
-                                  .last
-                                  .replaceAll(RegExp(r'\.[^.]+$'), '') ??
-                                  'Video',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.5,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Now Playing',
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.7),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w400,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: IconButton(
-                          onPressed: () => videoProvider.pickVideo(),
-                          icon: const Icon(Icons.folder_open),
-                          color: Colors.white,
-                          tooltip: 'Change Video',
-                        ),
-                      ),
-                    ],
+                child: SafeArea(
+                  top: true,
+                  bottom: false,
+                  child: NetflixMenuBar(
+                    onFullscreenToggle: () => _toggleFullScreen(videoProvider),
                   ),
                 ),
               ),
@@ -413,27 +342,6 @@ class _PlayerTabState extends State<PlayerTab> with TickerProviderStateMixin {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.only(right: 16, bottom: 8),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: IconButton(
-                                onPressed: () => _toggleFullScreen(videoProvider),
-                                icon: const Icon(Icons.fullscreen),
-                                color: Colors.white,
-                                iconSize: 28,
-                                tooltip: 'Fullscreen',
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
                       const VideoControls(),
                     ],
                   ),
@@ -1007,7 +915,7 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
                   child: SubtitleDisplay(),
                 ),
 
-                // Top Gradient with Exit Button
+                // Netflix Menu Bar (Top)
                 Positioned(
                   top: 0,
                   left: 0,
@@ -1015,53 +923,11 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
                   child: AnimatedOpacity(
                     opacity: _showControls ? 1.0 : 0.0,
                     duration: const Duration(milliseconds: 300),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.black.withOpacity(0.9),
-                            Colors.black.withOpacity(0.7),
-                            Colors.transparent,
-                          ],
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: IconButton(
-                              onPressed: () => Navigator.of(context).pop(),
-                              icon: const Icon(Icons.arrow_back),
-                              color: Colors.white,
-                              iconSize: 28,
-                              tooltip: 'Exit Fullscreen',
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              widget.videoProvider.videoFile?.path
-                                  .split('/')
-                                  .last
-                                  .replaceAll(RegExp(r'\.[^.]+$'), '') ??
-                                  'Video',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.5,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
+                    child: SafeArea(
+                      top: true,
+                      bottom: false,
+                      child: NetflixMenuBar(
+                        onFullscreenToggle: () => Navigator.of(context).pop(),
                       ),
                     ),
                   ),

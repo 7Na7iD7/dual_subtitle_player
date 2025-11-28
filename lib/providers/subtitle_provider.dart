@@ -360,6 +360,30 @@ class SubtitleProvider extends ChangeNotifier {
   int? get subtitle1Count => _subtitle1Data?.length;
   int? get subtitle2Count => _subtitle2Data?.length;
 
+  // --- Unified Interface for NetflixMenuBar Compatibility ---
+  // این متدها برای سازگاری با منوی نتفلیکس اضافه شده‌اند
+  // و به طور پیش‌فرض روی زیرنویس ۱ (اصلی) اعمال می‌شوند.
+
+  /// انتخاب زیرنویس (سازگار با منوی نتفلیکس)
+  Future<void> pickSubtitles() async {
+    // در اینجا پیش‌فرض را روی زیرنویس ۱ می‌گذاریم
+    // می‌توان بعداً یک دیالوگ برای انتخاب بین ۱ و ۲ باز کرد
+    await pickSubtitle1();
+  }
+
+  /// آیا زیرنویس فعال است؟ (بررسی وضعیت زیرنویس ۱)
+  bool get isSubtitlesEnabled => _showSubtitle1;
+
+  /// تغییر وضعیت فعال/غیرفعال بودن (تغییر وضعیت زیرنویس ۱)
+  void toggleSubtitles() {
+    toggleSubtitle1();
+  }
+
+  /// آیا زیرنویسی بارگذاری شده است؟ (بررسی وجود زیرنویس ۱)
+  bool get hasSubtitles => _subtitle1Data != null && _subtitle1Data!.isNotEmpty;
+
+  // ---------------------------------------------------------
+
   Future<void> pickSubtitle1() async {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -415,13 +439,6 @@ class SubtitleProvider extends ChangeNotifier {
       _lastSubtitle1Index = 0;
 
       debugPrint('Parsed ${_subtitle1Data!.length} subtitle 1 items');
-
-      if (_subtitle1Data!.isNotEmpty) {
-        debugPrint('First subtitle: ${_subtitle1Data!.first}');
-        if (_subtitle1Data!.length > 1) {
-          debugPrint('Second subtitle: ${_subtitle1Data![1]}');
-        }
-      }
     } catch (e) {
       debugPrint('Error parsing subtitle 1: $e');
       _subtitle1Data = null;
@@ -449,13 +466,6 @@ class SubtitleProvider extends ChangeNotifier {
       _lastSubtitle2Index = 0;
 
       debugPrint('Parsed ${_subtitle2Data!.length} subtitle 2 items');
-
-      if (_subtitle2Data!.isNotEmpty) {
-        debugPrint('First subtitle: ${_subtitle2Data!.first}');
-        if (_subtitle2Data!.length > 1) {
-          debugPrint('Second subtitle: ${_subtitle2Data![1]}');
-        }
-      }
     } catch (e) {
       debugPrint('Error parsing subtitle 2: $e');
       _subtitle2Data = null;
@@ -478,9 +488,6 @@ class SubtitleProvider extends ChangeNotifier {
       if (newText != _currentSubtitle1) {
         _currentSubtitle1 = newText;
         changed = true;
-        if (newText.isNotEmpty) {
-          debugPrint('Subtitle 1 updated at ${position.inSeconds}s: $newText');
-        }
       }
     } else if (_currentSubtitle1.isNotEmpty) {
       _currentSubtitle1 = '';
@@ -498,9 +505,6 @@ class SubtitleProvider extends ChangeNotifier {
       if (newText != _currentSubtitle2) {
         _currentSubtitle2 = newText;
         changed = true;
-        if (newText.isNotEmpty) {
-          debugPrint('Subtitle 2 updated at ${position.inSeconds}s: $newText');
-        }
       }
     } else if (_currentSubtitle2.isNotEmpty) {
       _currentSubtitle2 = '';
