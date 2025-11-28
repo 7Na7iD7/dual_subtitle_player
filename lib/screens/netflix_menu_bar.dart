@@ -8,7 +8,7 @@ import 'dart:ui';
 
 class NetflixMenuBar extends StatefulWidget {
   final VoidCallback? onFullscreenToggle;
-  
+
   const NetflixMenuBar({
     super.key,
     this.onFullscreenToggle,
@@ -18,7 +18,7 @@ class NetflixMenuBar extends StatefulWidget {
   State<NetflixMenuBar> createState() => _NetflixMenuBarState();
 }
 
-class _NetflixMenuBarState extends State<NetflixMenuBar> 
+class _NetflixMenuBarState extends State<NetflixMenuBar>
     with TickerProviderStateMixin {
   String? _hoveredMenu;
   String? _activeMenu;
@@ -26,7 +26,7 @@ class _NetflixMenuBarState extends State<NetflixMenuBar>
   late AnimationController _glowController;
   late AnimationController _particleController;
   late Animation<double> _menuAnimation;
-  
+
   bool _showMiniPlayer = false;
   bool _showVideoInfo = false;
   bool _showEqualizer = false;
@@ -43,12 +43,12 @@ class _NetflixMenuBarState extends State<NetflixMenuBar>
       parent: _menuController,
       curve: Curves.easeOutCubic,
     );
-    
+
     _glowController = AnimationController(
       duration: const Duration(seconds: 2),
       vsync: this,
     )..repeat(reverse: true);
-    
+
     _particleController = AnimationController(
       duration: const Duration(seconds: 3),
       vsync: this,
@@ -87,8 +87,9 @@ class _NetflixMenuBarState extends State<NetflixMenuBar>
     return Consumer2<VideoProvider, SubtitleProvider>(
       builder: (context, videoProvider, subtitleProvider, child) {
         return Stack(
+          clipBehavior: Clip.none, // Allow children to overflow
           children: [
-            // Main Menu Bar
+            // Main Menu Bar (The fixed top bar)
             Container(
               height: 56,
               decoration: BoxDecoration(
@@ -120,20 +121,20 @@ class _NetflixMenuBarState extends State<NetflixMenuBar>
                       );
                     },
                   ),
-                  
-                  // Menu Items
+
+                  // Menu Items Row
                   Row(
                     children: [
                       const SizedBox(width: 20),
-                      
+
                       // Logo with Glow Effect
                       AnimatedBuilder(
                         animation: _glowController,
                         builder: (context, child) {
                           return Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 12, 
-                              vertical: 6
+                                horizontal: 12,
+                                vertical: 6
                             ),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
@@ -146,7 +147,7 @@ class _NetflixMenuBarState extends State<NetflixMenuBar>
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.red.withOpacity(
-                                    0.5 + (_glowController.value * 0.5)
+                                      0.5 + (_glowController.value * 0.5)
                                   ),
                                   blurRadius: 20 + (_glowController.value * 10),
                                   spreadRadius: 2 + (_glowController.value * 3),
@@ -162,79 +163,79 @@ class _NetflixMenuBarState extends State<NetflixMenuBar>
                         },
                       ),
                       const SizedBox(width: 32),
-                      
+
                       _buildMenuItem('File', 'file'),
                       _buildMenuItem('Playback', 'playback'),
                       _buildMenuItem('Audio', 'audio'),
                       _buildMenuItem('Subtitles', 'subtitles'),
                       _buildMenuItem('View', 'view'),
                       _buildMenuItem('Tools', 'tools'),
-                      
+
                       const Spacer(),
-                      
+
                       // Quick Actions
                       _buildQuickAction(
                         icon: Icons.folder_open,
                         tooltip: 'Open Video',
                         onTap: () => videoProvider.pickVideo(),
                       ),
-                      
+
                       _buildQuickAction(
-                        icon: videoProvider.isPlaying 
-                            ? Icons.pause 
+                        icon: videoProvider.isPlaying
+                            ? Icons.pause
                             : Icons.play_arrow,
                         tooltip: videoProvider.isPlaying ? 'Pause' : 'Play',
                         onTap: () => videoProvider.togglePlayPause(),
                         isHighlighted: videoProvider.isInitialized,
                       ),
-                      
+
                       _buildQuickAction(
                         icon: Icons.picture_in_picture_alt,
                         tooltip: 'Mini Player',
                         onTap: () => setState(() => _showMiniPlayer = !_showMiniPlayer),
                         isHighlighted: _showMiniPlayer,
                       ),
-                      
+
                       _buildQuickAction(
                         icon: Icons.info_outline,
                         tooltip: 'Video Info',
                         onTap: () => setState(() => _showVideoInfo = true),
                       ),
-                      
+
                       _buildQuickAction(
                         icon: Icons.fullscreen,
                         tooltip: 'Fullscreen',
                         onTap: widget.onFullscreenToggle,
                       ),
-                      
+
                       const SizedBox(width: 20),
                     ],
                   ),
-                  
-                  // Dropdown Menu
-                  if (_activeMenu != null)
-                    Positioned(
-                      top: 56,
-                      left: _getMenuPosition(_activeMenu!),
-                      child: FadeTransition(
-                        opacity: _menuAnimation,
-                        child: SlideTransition(
-                          position: Tween<Offset>(
-                            begin: const Offset(0, -0.1),
-                            end: Offset.zero,
-                          ).animate(_menuAnimation),
-                          child: _buildDropdownMenu(
-                            _activeMenu!,
-                            videoProvider,
-                            subtitleProvider,
-                          ),
-                        ),
-                      ),
-                    ),
                 ],
               ),
             ),
-            
+
+            // Dropdown Menu - MOVED HERE (Outside the top container)
+            if (_activeMenu != null)
+              Positioned(
+                top: 56, // Positioned right below the 56px bar
+                left: _getMenuPosition(_activeMenu!),
+                child: FadeTransition(
+                  opacity: _menuAnimation,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0, -0.1),
+                      end: Offset.zero,
+                    ).animate(_menuAnimation),
+                    child: _buildDropdownMenu(
+                      _activeMenu!,
+                      videoProvider,
+                      subtitleProvider,
+                    ),
+                  ),
+                ),
+              ),
+
             // Mini Player
             if (_showMiniPlayer)
               Positioned(
@@ -242,15 +243,15 @@ class _NetflixMenuBarState extends State<NetflixMenuBar>
                 bottom: 20,
                 child: _buildMiniPlayer(videoProvider),
               ),
-            
+
             // Video Info Dialog
             if (_showVideoInfo)
               _buildVideoInfoDialog(videoProvider),
-            
+
             // Equalizer Dialog
             if (_showEqualizer)
               _buildEqualizerDialog(videoProvider),
-            
+
             // Notes Panel
             if (_showNotes)
               _buildNotesPanel(videoProvider),
@@ -263,7 +264,7 @@ class _NetflixMenuBarState extends State<NetflixMenuBar>
   Widget _buildMenuItem(String title, String key) {
     final isActive = _activeMenu == key;
     final isHovered = _hoveredMenu == key;
-    
+
     return MouseRegion(
       onEnter: (_) => setState(() => _hoveredMenu = key),
       onExit: (_) => setState(() => _hoveredMenu = null),
@@ -275,21 +276,21 @@ class _NetflixMenuBarState extends State<NetflixMenuBar>
           decoration: BoxDecoration(
             gradient: isActive
                 ? LinearGradient(
-                    colors: [
-                      Colors.red.withOpacity(0.3),
-                      Colors.red.withOpacity(0.1),
-                    ],
-                  )
+              colors: [
+                Colors.red.withOpacity(0.3),
+                Colors.red.withOpacity(0.1),
+              ],
+            )
                 : isHovered
-                    ? LinearGradient(
-                        colors: [
-                          Colors.white.withOpacity(0.15),
-                          Colors.white.withOpacity(0.05),
-                        ],
-                      )
-                    : null,
+                ? LinearGradient(
+              colors: [
+                Colors.white.withOpacity(0.15),
+                Colors.white.withOpacity(0.05),
+              ],
+            )
+                : null,
             borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(8)
+                top: Radius.circular(8)
             ),
           ),
           child: Row(
@@ -310,8 +311,8 @@ class _NetflixMenuBarState extends State<NetflixMenuBar>
                 duration: const Duration(milliseconds: 200),
                 child: Icon(
                   Icons.arrow_drop_down,
-                  color: isActive 
-                      ? Colors.red[300] 
+                  color: isActive
+                      ? Colors.red[300]
                       : Colors.white.withOpacity(0.7),
                   size: 20,
                 ),
@@ -339,26 +340,26 @@ class _NetflixMenuBarState extends State<NetflixMenuBar>
           decoration: BoxDecoration(
             gradient: isHighlighted
                 ? LinearGradient(
-                    colors: [
-                      Colors.red.withOpacity(0.3),
-                      Colors.red.withOpacity(0.1),
-                    ],
-                  )
+              colors: [
+                Colors.red.withOpacity(0.3),
+                Colors.red.withOpacity(0.1),
+              ],
+            )
                 : LinearGradient(
-                    colors: [
-                      Colors.white.withOpacity(0.08),
-                      Colors.white.withOpacity(0.03),
-                    ],
-                  ),
+              colors: [
+                Colors.white.withOpacity(0.08),
+                Colors.white.withOpacity(0.03),
+              ],
+            ),
             borderRadius: BorderRadius.circular(8),
             boxShadow: isHighlighted
                 ? [
-                    BoxShadow(
-                      color: Colors.red.withOpacity(0.3),
-                      blurRadius: 10,
-                      spreadRadius: 1,
-                    ),
-                  ]
+              BoxShadow(
+                color: Colors.red.withOpacity(0.3),
+                blurRadius: 10,
+                spreadRadius: 1,
+              ),
+            ]
                 : null,
           ),
           child: IconButton(
@@ -385,10 +386,10 @@ class _NetflixMenuBarState extends State<NetflixMenuBar>
   }
 
   Widget _buildDropdownMenu(
-    String menu,
-    VideoProvider videoProvider,
-    SubtitleProvider subtitleProvider,
-  ) {
+      String menu,
+      VideoProvider videoProvider,
+      SubtitleProvider subtitleProvider,
+      ) {
     return GestureDetector(
       onTap: () {},
       child: ClipRRect(
@@ -498,7 +499,7 @@ class _NetflixMenuBarState extends State<NetflixMenuBar>
 
   Widget _buildSpeedOption(double speed, VideoProvider videoProvider) {
     final isActive = false; // TODO: Get from provider
-    
+
     return InkWell(
       onTap: () {
         videoProvider.setPlaybackSpeed(speed);
@@ -613,7 +614,7 @@ class _NetflixMenuBarState extends State<NetflixMenuBar>
                   color: Colors.white.withOpacity(0.5),
                 ),
               ),
-              
+
               // Close Button
               Positioned(
                 top: 8,
@@ -623,7 +624,7 @@ class _NetflixMenuBarState extends State<NetflixMenuBar>
                   onPressed: () => setState(() => _showMiniPlayer = false),
                 ),
               ),
-              
+
               // Controls
               Positioned(
                 bottom: 0,
@@ -975,7 +976,7 @@ class _NetflixMenuBarState extends State<NetflixMenuBar>
                     ],
                   ),
                 ),
-                
+
                 // Current Time Display
                 Container(
                   padding: const EdgeInsets.all(12),
@@ -994,7 +995,7 @@ class _NetflixMenuBarState extends State<NetflixMenuBar>
                     ],
                   ),
                 ),
-                
+
                 // Notes List
                 Expanded(
                   child: ListView(
@@ -1007,7 +1008,7 @@ class _NetflixMenuBarState extends State<NetflixMenuBar>
                     ],
                   ),
                 ),
-                
+
                 // Add Note Input
                 Container(
                   padding: const EdgeInsets.all(16),
@@ -1153,21 +1154,21 @@ class _NetflixMenuBarState extends State<NetflixMenuBar>
 // Particle Painter for Background Animation
 class ParticlePainter extends CustomPainter {
   final double animation;
-  
+
   ParticlePainter(this.animation);
-  
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..style = PaintingStyle.fill;
-    
+
     // Create multiple particles with different properties
     for (int i = 0; i < 30; i++) {
       final progress = (animation + (i / 30)) % 1.0;
       final x = (size.width / 30) * i + (progress * 100);
       final y = math.sin((progress * 2 * math.pi) + (i * 0.3)) * 15 + 28;
       final opacity = (math.sin(progress * math.pi) * 0.3).clamp(0.0, 1.0);
-      
+
       // Draw particle with glow effect
       paint.color = Colors.red.withOpacity(opacity);
       canvas.drawCircle(
@@ -1175,7 +1176,7 @@ class ParticlePainter extends CustomPainter {
         2 + (math.sin(progress * math.pi) * 1),
         paint,
       );
-      
+
       // Add subtle glow
       paint.color = Colors.red.withOpacity(opacity * 0.3);
       canvas.drawCircle(
@@ -1185,7 +1186,7 @@ class ParticlePainter extends CustomPainter {
       );
     }
   }
-  
+
   @override
   bool shouldRepaint(ParticlePainter oldDelegate) => true;
 }
