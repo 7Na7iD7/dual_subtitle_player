@@ -12,6 +12,9 @@ class VideoProvider extends ChangeNotifier {
   bool _isInitialized = false;
   bool _isLoading = false;
   String? _error;
+  double _volume = 0.7;
+  double _playbackSpeed = 1.0;
+  bool _isLooping = false;
 
   // Getters
   Player get player => _player;
@@ -21,12 +24,19 @@ class VideoProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
+  // Getters
+  double get volume => _volume;
+  double get playbackSpeed => _playbackSpeed;
+  bool get isLooping => _isLooping;
+
   Duration get currentPosition => _player.state.position;
   Duration get totalDuration => _player.state.duration;
+  Duration get position => _player.state.position;
+  Duration get duration => _player.state.duration;
   bool get isPlaying => _player.state.playing;
   bool get isBuffering => _player.state.buffering;
 
-  // استریم موقعیت برای استفاده در StreamBuilder (تغییر جدید)
+  //StreamBuilder
   Stream<Duration> get positionStream => _player.stream.position;
 
   double get buffered {
@@ -44,14 +54,6 @@ class VideoProvider extends ChangeNotifier {
     _player = Player();
     _controller = VideoController(_player);
 
-    // Listen to position changes
-    // اصلاح: حذف notifyListeners برای پوزیشن برای جلوگیری از بیلد شدن‌های اضافی
-    // چون حالا از StreamBuilder استفاده می‌کنیم، نیازی نیست اینجا UI رو خبر کنیم.
-    /* _player.stream.position.listen((duration) {
-      notifyListeners();
-    });
-    */
-
     // Listen to playing state
     _player.stream.playing.listen((playing) {
       notifyListeners();
@@ -65,8 +67,13 @@ class VideoProvider extends ChangeNotifier {
     // Listen to completion
     _player.stream.completed.listen((completed) {
       if (completed) {
-        _player.seek(Duration.zero);
-        _player.pause();
+        if (_isLooping) {
+          _player.seek(Duration.zero);
+          _player.play();
+        } else {
+          _player.seek(Duration.zero);
+          _player.pause();
+        }
       }
     });
 
@@ -75,6 +82,8 @@ class VideoProvider extends ChangeNotifier {
       _error = 'MediaKit Error: $error';
       notifyListeners();
     });
+
+    _player.setVolume(_volume * 100);
   }
 
   Future<void> pickVideo() async {
@@ -128,11 +137,20 @@ class VideoProvider extends ChangeNotifier {
   }
 
   void setVolume(double volume) {
-    _player.setVolume(volume * 100);
+    _volume = volume.clamp(0.0, 1.0);
+    _player.setVolume(_volume * 100);
+    notifyListeners();
   }
 
   void setPlaybackSpeed(double speed) {
+    _playbackSpeed = speed;
     _player.setRate(speed);
+    notifyListeners();
+  }
+
+  void toggleLoop() {
+    _isLooping = !_isLooping;
+    notifyListeners();
   }
 
   @override

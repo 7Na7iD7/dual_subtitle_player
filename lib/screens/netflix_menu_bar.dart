@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/video_provider.dart';
 import '../providers/subtitle_provider.dart';
+import '../menu_tabs/menu_tabs_manager.dart';
 import 'dart:math' as math;
 import 'dart:ui';
 
@@ -434,201 +435,17 @@ class _NetflixMenuBarState extends State<NetflixMenuBar>
   }
 
   List<Widget> _getMenuItems(
-    String menu,
-    VideoProvider videoProvider,
-    SubtitleProvider subtitleProvider,
-  ) {
-    switch (menu) {
-      case 'file':
-        return [
-          _buildDropdownItem(
-            icon: Icons.folder_open,
-            title: 'Open Video',
-            subtitle: 'Ctrl+O',
-            onTap: () {
-              videoProvider.pickVideo();
-              _closeMenu();
-            },
-          ),
-          _buildDivider(),
-          _buildDropdownItem(
-            icon: Icons.history,
-            title: 'Recent Files',
-            onTap: _closeMenu,
-          ),
-          _buildDropdownItem(
-            icon: Icons.close,
-            title: 'Close Video',
-            subtitle: 'Ctrl+W',
-            isDestructive: true,
-            onTap: _closeMenu,
-          ),
-        ];
-
-      case 'playback':
-        return [
-          _buildDropdownItem(
-            icon: videoProvider.isPlaying ? Icons.pause : Icons.play_arrow,
-            title: videoProvider.isPlaying ? 'Pause' : 'Play',
-            subtitle: 'Space',
-            onTap: () {
-              videoProvider.togglePlayPause();
-              _closeMenu();
-            },
-          ),
-          _buildDropdownItem(
-            icon: Icons.stop,
-            title: 'Stop',
-            onTap: () {
-              videoProvider.pause();
-              videoProvider.seekTo(Duration.zero);
-              _closeMenu();
-            },
-          ),
-          _buildDivider(),
-          _buildSectionHeader('Playback Speed'),
-          ...[ 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map(
-            (speed) => _buildSpeedOption(speed, videoProvider),
-          ),
-        ];
-
-      case 'audio':
-        return [
-          _buildSectionHeader('Volume'),
-          _buildVolumeSlider(videoProvider),
-          _buildDivider(),
-          _buildDropdownItem(
-            icon: Icons.equalizer,
-            title: 'Equalizer',
-            subtitle: 'Ctrl+E',
-            onTap: () {
-              setState(() => _showEqualizer = true);
-              _closeMenu();
-            },
-          ),
-          _buildDropdownItem(
-            icon: Icons.volume_off,
-            title: 'Mute',
-            subtitle: 'M',
-            onTap: () {
-              videoProvider.setVolume(0);
-              _closeMenu();
-            },
-          ),
-        ];
-
-      case 'subtitles':
-        return [
-          _buildDropdownItem(
-            icon: Icons.subtitles,
-            title: 'Load Subtitles',
-            onTap: () {
-              subtitleProvider.pickSubtitles();
-              _closeMenu();
-            },
-          ),
-          _buildDivider(),
-          _buildDropdownItem(
-            icon: subtitleProvider.isSubtitlesEnabled
-                ? Icons.check_box
-                : Icons.check_box_outline_blank,
-            title: 'Enable Subtitles',
-            onTap: () {
-              subtitleProvider.toggleSubtitles();
-              _closeMenu();
-            },
-          ),
-          if (subtitleProvider.hasSubtitles) ...[
-            _buildDivider(),
-            _buildSectionHeader('Subtitle Settings'),
-            _buildDropdownItem(
-              icon: Icons.format_size,
-              title: 'Font Size',
-              onTap: _closeMenu,
-            ),
-            _buildDropdownItem(
-              icon: Icons.palette,
-              title: 'Subtitle Color',
-              onTap: _closeMenu,
-            ),
-          ],
-        ];
-
-      case 'view':
-        return [
-          _buildDropdownItem(
-            icon: Icons.fullscreen,
-            title: 'Fullscreen',
-            subtitle: 'F',
-            onTap: () {
-              widget.onFullscreenToggle?.call();
-              _closeMenu();
-            },
-          ),
-          _buildDivider(),
-          _buildDropdownItem(
-            icon: Icons.picture_in_picture_alt,
-            title: 'Mini Player',
-            subtitle: 'Ctrl+M',
-            onTap: () {
-              setState(() => _showMiniPlayer = !_showMiniPlayer);
-              _closeMenu();
-            },
-          ),
-          _buildDropdownItem(
-            icon: Icons.aspect_ratio,
-            title: 'Aspect Ratio',
-            onTap: _closeMenu,
-          ),
-          _buildDivider(),
-          _buildDropdownItem(
-            icon: Icons.info_outline,
-            title: 'Video Info',
-            subtitle: 'Ctrl+I',
-            onTap: () {
-              setState(() => _showVideoInfo = true);
-              _closeMenu();
-            },
-          ),
-        ];
-
-      case 'tools':
-        return [
-          _buildDropdownItem(
-            icon: Icons.camera_alt,
-            title: 'Take Screenshot',
-            subtitle: 'Ctrl+S',
-            onTap: _closeMenu,
-          ),
-          _buildDropdownItem(
-            icon: Icons.fiber_manual_record,
-            title: 'Record Screen',
-            subtitle: 'Ctrl+R',
-            onTap: _closeMenu,
-          ),
-          _buildDivider(),
-          _buildDropdownItem(
-            icon: Icons.note_add,
-            title: 'Notes',
-            subtitle: 'Ctrl+N',
-            onTap: () {
-              setState(() => _showNotes = !_showNotes);
-              _closeMenu();
-            },
-          ),
-          _buildDropdownItem(
-            icon: Icons.equalizer,
-            title: 'Audio Equalizer',
-            onTap: () {
-              setState(() => _showEqualizer = true);
-              _closeMenu();
-            },
-          ),
-        ];
-
-      default:
-        return [];
-    }
+      String menu,
+      VideoProvider videoProvider,
+      SubtitleProvider subtitleProvider,
+      ) {
+    return MenuTabsManager.getTabContent(
+      tabName: menu,
+      videoProvider: videoProvider,
+      subtitleProvider: subtitleProvider,
+      onClose: _closeMenu,
+      context: context,
+    );
   }
 
   Widget _buildDropdownItem({
