@@ -293,20 +293,16 @@ class _PlayerTabState extends State<PlayerTab> with TickerProviderStateMixin {
                 ),
               ),
 
-            // Netflix Menu Bar (Top)
+            // Netflix Menu Bar (Top) - FIXED: AnimatedOpacity removed
             Positioned(
               top: 0,
               left: 0,
               right: 0,
-              child: AnimatedOpacity(
-                opacity: _showControls ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 300),
-                child: SafeArea(
-                  top: true,
-                  bottom: false,
-                  child: NetflixMenuBar(
-                    onFullscreenToggle: () => _toggleFullScreen(videoProvider),
-                  ),
+              child: SafeArea(
+                top: true,
+                bottom: false,
+                child: NetflixMenuBar(
+                  onFullscreenToggle: () => _toggleFullScreen(videoProvider),
                 ),
               ),
             ),
@@ -915,20 +911,16 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
                   child: SubtitleDisplay(),
                 ),
 
-                // Netflix Menu Bar (Top)
+                // Netflix Menu Bar (Top) - FIXED: AnimatedOpacity removed
                 Positioned(
                   top: 0,
                   left: 0,
                   right: 0,
-                  child: AnimatedOpacity(
-                    opacity: _showControls ? 1.0 : 0.0,
-                    duration: const Duration(milliseconds: 300),
-                    child: SafeArea(
-                      top: true,
-                      bottom: false,
-                      child: NetflixMenuBar(
-                        onFullscreenToggle: () => Navigator.of(context).pop(),
-                      ),
+                  child: SafeArea(
+                    top: true,
+                    bottom: false,
+                    child: NetflixMenuBar(
+                      onFullscreenToggle: () => Navigator.of(context).pop(),
                     ),
                   ),
                 ),
